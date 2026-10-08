@@ -1,0 +1,138 @@
+openapi: 3.0.3
+info:
+  title: Financial AI Risk Engine
+  version: 1.0.0
+  description: Feature 1 - Real-Time Data Ingestion Engine for news, social, and manual financial events.
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/v1/events:
+    post:
+      summary: Ingest a single financial event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinancialEventInput'
+      responses:
+        '201':
+          description: Event ingested successfully
+        '400':
+          description: Invalid payload
+        '409':
+          description: Duplicate event
+  /api/v1/events/batch:
+    post:
+      summary: Ingest multiple financial events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/FinancialEventInput'
+      responses:
+        '201':
+          description: Batch accepted
+  /api/v1/events/recent:
+    get:
+      summary: Retrieve recently ingested events
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Recent events list
+  /api/v1/events/{eventId}/analyze:
+    post:
+      summary: Analyze a financial event with the NLP pipeline
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: NLP analysis created
+        '200':
+          description: Existing analysis reused
+        '404':
+          description: Event not found
+  /api/v1/events/{eventId}/analysis:
+    get:
+      summary: Get analysis for an event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Analysis result
+  /api/v1/analyses/recent:
+    get:
+      summary: Retrieve recent NLP analyses
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Recent analyses list
+components:
+  schemas:
+    FinancialEventInput:
+      type: object
+      required:
+        - source
+        - title
+        - content
+        - published_at
+        - language
+        - event_type
+      properties:
+        source:
+          type: string
+          enum: [news, social, manual]
+        source_event_id:
+          type: string
+          nullable: true
+        title:
+          type: string
+        content:
+          type: string
+        url:
+          type: string
+          format: uri
+          nullable: true
+        author:
+          type: string
+          nullable: true
+        published_at:
+          type: string
+          format: date-time
+        language:
+          type: string
+          example: en
+        event_type:
+          type: string
+          example: macro
+        metadata:
+          type: object
+          additionalProperties: true

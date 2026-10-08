@@ -1,0 +1,8 @@
+{
+  "risk_score_threshold": 85,
+  "increase_threshold": 0.2,
+  "rapid_deterioration_threshold": 25,
+  "activity_spike_min_events": 5,
+  "activity_spike_multiplier": 2.5,
+  "cooldown_ms": 600000
+}

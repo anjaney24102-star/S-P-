@@ -1,0 +1,22 @@
+{
+  "events": [
+    {
+      "id": "98f1224f-1fb5-4510-a1cd-a0e96797affe",
+      "source": "news",
+      "source_event_id": "sample-001",
+      "title": "Fed signals caution on rate cuts",
+      "content": "The Federal Reserve signaled caution about near-term rate cuts amid sticky inflation.",
+      "url": "https://example.com/news/1001",
+      "author": "Jane Doe",
+      "published_at": "2026-10-08T09:30:00.000Z",
+      "ingested_at": "2026-10-08T16:00:40.139Z",
+      "language": "en",
+      "event_type": "macro",
+      "metadata": {
+        "source_adapter": "news",
+        "content_hash": "7d4defd9aa3d20b651d921bccc92f64b35b97c2b0da11ae9b9ed359292de6d3b"
+      },
+      "content_hash": "7d4defd9aa3d20b651d921bccc92f64b35b97c2b0da11ae9b9ed359292de6d3b"
+    }
+  ]
+}
