@@ -7,6 +7,7 @@ class RiskRepository {
     this.signals = [];
     this.byEventId = new Map();
     this.byEntity = new Map();
+    this.byEntityId = new Map();
     this.initialize();
   }
 
@@ -28,6 +29,7 @@ class RiskRepository {
   rebuildIndex() {
     this.byEventId.clear();
     this.byEntity.clear();
+    this.byEntityId.clear();
     this.signals.forEach((signal) => {
       const eventId = signal.event_id;
       if (!this.byEventId.has(eventId)) this.byEventId.set(eventId, []);
@@ -36,6 +38,10 @@ class RiskRepository {
       const key = String(signal.entity).toLowerCase();
       if (!this.byEntity.has(key)) this.byEntity.set(key, []);
       this.byEntity.get(key).push(signal);
+      if (signal.entity_id) {
+        if (!this.byEntityId.has(String(signal.entity_id))) this.byEntityId.set(String(signal.entity_id), []);
+        this.byEntityId.get(String(signal.entity_id)).push(signal);
+      }
     });
   }
 
@@ -62,6 +68,8 @@ class RiskRepository {
     const key = String(entityName).toLowerCase();
     return this.byEntity.get(key) || [];
   }
+
+  findByEntityId(entityId) { return this.byEntityId.get(String(entityId)) || []; }
 
   findSignalsByEntity(entityName) {
     return this.findByEntity(entityName);
@@ -92,6 +100,7 @@ class RiskRepository {
     this.signals = [];
     this.byEventId.clear();
     this.byEntity.clear();
+    this.byEntityId.clear();
     this.persist();
   }
 }

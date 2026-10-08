@@ -12,10 +12,11 @@ class AnalysisProcessingError extends Error {
 }
 
 class AnalysisService {
-  constructor({ eventRepository, analysisRepository, nlpPipeline } = {}) {
+  constructor({ eventRepository, analysisRepository, nlpPipeline, storyClusteringService } = {}) {
     this.eventRepository = eventRepository;
     this.analysisRepository = analysisRepository;
     this.nlpPipeline = nlpPipeline || new FinancialNLPipeline();
+    this.storyClusteringService = storyClusteringService;
   }
 
   analyzeEvent(eventId, options = {}) {
@@ -52,6 +53,10 @@ class AnalysisService {
         model: analysis.model_name,
         sentiment: analysis.sentiment_label,
       });
+
+      if (this.storyClusteringService && typeof this.storyClusteringService.clusterEvent === 'function') {
+        this.storyClusteringService.clusterEvent(eventId);
+      }
 
       return {
         analysis: saved,

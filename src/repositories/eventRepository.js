@@ -51,6 +51,14 @@ class EventRepository {
   }
 
   save(event) {
+    if (event && event.id && this.byId.has(event.id)) {
+      const index = this.events.findIndex((item) => item.id === event.id);
+      this.events[index] = event;
+      this.buildIndexes();
+      this.persist();
+      return { duplicate: false, event };
+    }
+
     const duplicateBySourceId = event.source_event_id
       ? this.bySourceEventId.get(`${event.source}:${event.source_event_id}`)
       : null;

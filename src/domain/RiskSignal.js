@@ -2,6 +2,8 @@ const { v4: uuidv4 } = require('uuid');
 
 const buildRiskSignal = ({
   entity,
+  entityId = null,
+  storyId = null,
   eventId,
   riskScore,
   riskLevel,
@@ -15,6 +17,8 @@ const buildRiskSignal = ({
 }) => ({
   id: uuidv4(),
   entity,
+  entity_id: entityId,
+  story_id: storyId,
   event_id: eventId,
   risk_score: Number(riskScore),
   risk_level: riskLevel,

@@ -224,6 +224,35 @@ class AlertService {
     return createdAlerts;
   }
 
+  recordEarlyWarning(warning) {
+    if (!warning || !this.alertRepository) return null;
+    const duplicate = this.alertRepository.findAll().find((alert) => alert.alert_type === 'EARLY_WARNING'
+      && alert.metadata?.early_warning_key === `${warning.entity_id}:${warning.warning_type}:${warning.window}`
+      && Date.now() - new Date(alert.triggered_at).getTime() < Number(this.config.cooldown_ms || 0));
+    if (duplicate) return duplicate;
+    const alert = {
+      id: uuidv4(),
+      entity: warning.entity,
+      alert_type: 'EARLY_WARNING',
+      severity: warning.severity,
+      message: warning.explanation,
+      triggered_at: warning.detected_at,
+      risk_score: Number(warning.current_value || 0),
+      acknowledged: false,
+      metadata: {
+        warning_id: warning.id,
+        warning_type: warning.warning_type,
+        entity_id: warning.entity_id,
+        window: warning.window,
+        early_warning_key: `${warning.entity_id}:${warning.warning_type}:${warning.window}`,
+        baseline_value: warning.baseline_value,
+        current_value: warning.current_value,
+        deviation: warning.deviation,
+      },
+    };
+    return this.alertRepository.save(alert);
+  }
+
   acknowledgeAlert(alertId) {
     if (!this.alertRepository || typeof this.alertRepository.update !== 'function') {
       return null;

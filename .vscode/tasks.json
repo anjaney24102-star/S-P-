@@ -1,0 +1,79 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "probe shell",
+			"type": "shell",
+			"command": "echo hi",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Story clustering tests",
+			"type": "shell",
+			"command": "npm test -- --runTestsByPath tests/storyClustering.test.js",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Direct jest run",
+			"type": "shell",
+			"command": "node ./node_modules/jest/bin/jest.js --runInBand --runTestsByPath tests/storyClustering.test.js",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Direct story test run",
+			"type": "shell",
+			"command": "node ./node_modules/jest/bin/jest.js --runInBand --runTestsByPath tests/storyClustering.test.js",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Story similarity probe",
+			"type": "shell",
+			"command": "node - <<'NODE'\nconst { EventRepository } = require('./src/repositories/eventRepository');\nconst { AnalysisRepository } = require('./src/repositories/analysisRepository');\nconst { StoryRepository } = require('./src/repositories/storyRepository');\nconst { StoryClusteringService } = require('./src/services/storyClusteringService');\nconst { storagePath, analysisStoragePath, storyStoragePath } = require('./src/config');\nconst { FinancialNLPipeline } = require('./src/nlp/nlpPipeline');\nconst { SourceAdapterRegistry } = require('./src/adapters/sourceRegistry');\nconst { IngestionService } = require('./src/services/ingestionService');\nconst repository = new EventRepository(storagePath);\nconst analysisRepository = new AnalysisRepository(analysisStoragePath);\nconst storyRepository = new StoryRepository(storyStoragePath);\nconst service = new IngestionService({ repository, sourceRegistry: new SourceAdapterRegistry() });\nconst storyService = new StoryClusteringService({ eventRepository: repository, analysisRepository, storyRepository });\nconst e1 = service.ingestOne({source:'news', source_event_id:'s1', title:'Company X faces regulatory investigation', content:'Authorities are investigating Company X after compliance concerns.', published_at:new Date().toISOString(), language:'en', event_type:'regulatory_action'});\nconst a1 = new FinancialNLPipeline().process(e1);\nanalysisRepository.save(a1);\nconst e2 = service.ingestOne({source:'major_news', source_event_id:'s2', title:'Regulator launches probe into Company X', content:'A regulator launched a probe into Company X after compliance issues were identified.', published_at:new Date().toISOString(), language:'en', event_type:'regulatory_action'});\nconst a2 = new FinancialNLPipeline().process(e2);\nanalysisRepository.save(a2);\nconsole.log('event1', e1.id, e1.title, 'entities', a1.entities, 'topics', a2.topics);\nconsole.log('similarity', storyService.getSimilarityScore(e1,a1,e2,a2));\nconst match = storyService.findMatchingStory(e2,a2);\nconsole.log('match', match && match.story && {id:match.story.id, title:match.story.title, score:match.score, source_count:match.story.source_count});\nconsole.log('all stories', storyService.listStories());\nNODE",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Scoring probe",
+			"type": "shell",
+			"command": "node -e \"const {EventRepository}=require('./src/repositories/eventRepository'); const {AnalysisRepository}=require('./src/repositories/analysisRepository'); const {StoryRepository}=require('./src/repositories/storyRepository'); const {StoryClusteringService}=require('./src/services/storyClusteringService'); const {storagePath,analysisStoragePath,storyStoragePath}=require('./src/config'); const {FinancialNLPipeline}=require('./src/nlp/nlpPipeline'); const {SourceAdapterRegistry}=require('./src/adapters/sourceRegistry'); const {IngestionService}=require('./src/services/ingestionService'); const repository=new EventRepository(storagePath); const analysisRepository=new AnalysisRepository(analysisStoragePath); const storyRepository=new StoryRepository(storyStoragePath); const service=new IngestionService({repository,sourceRegistry:new SourceAdapterRegistry()}); const storyService=new StoryClusteringService({eventRepository:repository,analysisRepository,storyRepository}); const e1=service.ingestOne({source:'news',source_event_id:'s1',title:'Company X faces regulatory investigation',content:'Authorities are investigating Company X after compliance concerns.',published_at:new Date().toISOString(),language:'en',event_type:'regulatory_action'}); const a1=new FinancialNLPipeline().process(e1); analysisRepository.save(a1); const e2=service.ingestOne({source:'major_news',source_event_id:'s2',title:'Regulator launches probe into Company X',content:'A regulator launched a probe into Company X after compliance issues were identified.',published_at:new Date().toISOString(),language:'en',event_type:'regulatory_action'}); const a2=new FinancialNLPipeline().process(e2); analysisRepository.save(a2); console.log('a1',JSON.stringify(a1.entities)); console.log('a2',JSON.stringify(a2.entities)); console.log('similarity', storyService.getSimilarityScore(e1,a1,e2,a2)); const match=storyService.findMatchingStory(e2,a2); console.log('match', match && match.story && {id:match.story.id,title:match.story.title,score:match.score,source_count:match.story.source_count}); console.log('stories', storyService.listStories());\"",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Debug story state",
+			"type": "shell",
+			"command": "node -e \"const { app, resetIngestionForTests } = require('./src/app'); const request = require('supertest'); (async () => { resetIngestionForTests(); const makeEvent = (source, sourceEventId, overrides = {}) => ({ source, source_event_id: sourceEventId, title: 'Company X faces regulatory investigation', content: 'Authorities are investigating Company X in connection with a financial compliance issue.', published_at: new Date().toISOString(), language: 'en', event_type: 'regulatory_action', ...overrides }); const articleA = makeEvent('news', 'story-1', { title: 'Company X faces regulatory investigation', content: 'Regulators investigate Company X after internal compliance concerns.' }); const articleB = makeEvent('major_news', 'story-2', { title: 'Regulator launches probe into Company X', content: 'A regulator launched a probe into Company X after compliance issues were identified.' }); const first = await request(app).post('/api/v1/events').send(articleA); await request(app).post(`/api/v1/events/${first.body.data.id}/analyze`); const second = await request(app).post('/api/v1/events').send(articleB); await request(app).post(`/api/v1/events/${second.body.data.id}/analyze`); const service = require('./src/app').storyClusteringService; const stories = await service.clusterEvents([first.body.data.id, second.body.data.id]); console.log(JSON.stringify(stories, null, 2)); const list = await request(app).get('/api/v1/stories'); console.log(JSON.stringify(list.body, null, 2)); })().catch(err => { console.error(err); process.exit(1); });\"",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Validate source aliases",
+			"type": "shell",
+			"command": "node -e \"const { app, resetIngestionForTests } = require('./src/app'); const request = require('supertest'); (async () => { resetIngestionForTests(); const makeEvent = (source, sourceEventId, overrides={}) => ({ source, source_event_id: sourceEventId, title: 'Company X faces regulatory investigation', content: 'Authorities are investigating Company X in connection with a financial compliance issue.', published_at: new Date().toISOString(), language: 'en', event_type: 'regulatory_action', ...overrides }); const articleA = makeEvent('news','story-1',{title:'Company X faces regulatory investigation', content:'Regulators investigate Company X after internal compliance concerns.'}); const articleB = makeEvent('major_news','story-2',{title:'Regulator launches probe into Company X', content:'A regulator launched a probe into Company X after compliance issues were identified.'}); const first = await request(app).post('/api/v1/events').send(articleA); await request(app).post(`/api/v1/events/${first.body.data.id}/analyze`); const second = await request(app).post('/api/v1/events').send(articleB); await request(app).post(`/api/v1/events/${second.body.data.id}/analyze`); const stories = await require('./src/app').storyClusteringService.clusterEvents([first.body.data.id, second.body.data.id]); console.log(JSON.stringify(stories, null, 2)); })().catch((err) => { console.error(err); process.exit(1); });\"",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Story clustering regression suite",
+			"type": "shell",
+			"command": "node ./node_modules/jest/bin/jest.js --runInBand --runTestsByPath tests/storyClustering.test.js",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Run all project tests",
+			"type": "shell",
+			"command": "node ./node_modules/jest/bin/jest.js --runInBand",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		}
+	]
+}

@@ -2,8 +2,9 @@ const { aggregation: aggregationConfig } = require('../config/riskConfig');
 const { buildEmergingRisk } = require('../domain/EmergingRisk');
 
 class RiskAggregationService {
-  constructor({ riskRepository, config = aggregationConfig } = {}) {
+  constructor({ riskRepository, entityResolutionService, config = aggregationConfig } = {}) {
     this.riskRepository = riskRepository;
+    this.entityResolutionService = entityResolutionService;
     this.config = config;
   }
 
@@ -62,6 +63,12 @@ class RiskAggregationService {
     }
 
     return [];
+  }
+
+  getSignalsForEntity(entityName) {
+    const resolved = this.entityResolutionService?.resolve(entityName)?.resolved_entity;
+    if (resolved && typeof this.riskRepository?.findByEntityId === 'function') return this.riskRepository.findByEntityId(resolved.id);
+    return typeof this.riskRepository?.findSignalsByEntity === 'function' ? this.riskRepository.findSignalsByEntity(entityName) : [];
   }
 
   getSignalFactors(signal) {
@@ -147,9 +154,9 @@ class RiskAggregationService {
       };
     }
 
-    const signals = typeof this.riskRepository.findSignalsByEntity === 'function'
-      ? this.riskRepository.findSignalsByEntity(entityName)
-      : [];
+    const resolution = this.entityResolutionService?.resolve(entityName);
+    const canonicalName = resolution?.resolved_entity?.canonical_name || entityName;
+    const signals = this.getSignalsForEntity(entityName);
 
     if (!signals.length) {
       return {
@@ -169,13 +176,13 @@ class RiskAggregationService {
       };
     }
 
-    return this.buildEntitySummary(entityName, signals, options.window || '24h');
+    return this.buildEntitySummary(canonicalName, signals, options.window || '24h');
   }
 
   getEntityRiskHistory(entityName, options = {}) {
-    const signals = typeof this.riskRepository.findSignalsByEntity === 'function'
-      ? this.riskRepository.findSignalsByEntity(entityName)
-      : [];
+    const resolved = this.entityResolutionService?.resolve(entityName)?.resolved_entity;
+    const canonicalName = resolved?.canonical_name || entityName;
+    const signals = this.getSignalsForEntity(entityName);
 
     if (!signals.length) {
       return [];
@@ -195,7 +202,7 @@ class RiskAggregationService {
     });
 
     return [...buckets.entries()].map(([timestamp, bucketSignals]) => {
-      const summary = this.buildEntitySummary(entityName, bucketSignals, windowKey);
+      const summary = this.buildEntitySummary(canonicalName, bucketSignals, windowKey);
       return {
         timestamp,
         risk_score: summary.current_risk_score,
@@ -207,9 +214,9 @@ class RiskAggregationService {
   }
 
   correlateSignals(entityName, options = {}) {
-    const signals = typeof this.riskRepository.findSignalsByEntity === 'function'
-      ? this.riskRepository.findSignalsByEntity(entityName)
-      : [];
+    const resolved = this.entityResolutionService?.resolve(entityName)?.resolved_entity;
+    const canonicalName = resolved?.canonical_name || entityName;
+    const signals = this.getSignalsForEntity(entityName);
 
     const sorted = [...signals].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     const clusters = [];
@@ -217,7 +224,7 @@ class RiskAggregationService {
 
     sorted.forEach((signal) => {
       let cluster = clusters.find((item) => {
-        const sameEntity = String(item.entity).toLowerCase() === String(signal.entity || entityName).toLowerCase();
+        const sameEntity = String(item.entity_id || item.entity).toLowerCase() === String(signal.entity_id || canonicalName).toLowerCase();
         const sameEventType = item.event_type === signal.event_type;
         const sameFactor = this.getSignalFactors(item).some((factor) => this.getSignalFactors(signal).includes(factor));
         const timeGap = Math.abs(new Date(signal.created_at).getTime() - new Date(item.last_timestamp).getTime());
@@ -226,7 +233,8 @@ class RiskAggregationService {
 
       if (!cluster) {
         cluster = {
-          entity: signal.entity || entityName,
+          entity: signal.entity || canonicalName,
+          entity_id: signal.entity_id || resolved?.id || null,
           event_type: signal.event_type || 'general_financial_event',
           window_hours: 12,
           signals: [],
@@ -260,7 +268,7 @@ class RiskAggregationService {
 
     const grouped = new Map();
     signals.forEach((signal) => {
-      const key = String(signal.entity || 'Unknown entity').toLowerCase();
+      const key = String(signal.entity_id || signal.entity || 'Unknown entity').toLowerCase();
       if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key).push(signal);
     });
@@ -269,7 +277,7 @@ class RiskAggregationService {
     const emerging = [];
 
     grouped.forEach((entitySignals, entityKey) => {
-      const summary = this.buildEntitySummary(entityKey, entitySignals, windowKey);
+      const summary = this.buildEntitySummary(entitySignals[0]?.entity || entityKey, entitySignals, windowKey);
       const meetsThreshold = summary.number_of_risk_events >= (options.minSignals || this.config.thresholds.minEmergingSignals)
         && summary.current_risk_score >= (options.minRiskScore || this.config.thresholds.minEmergingRiskScore)
         && summary.confidence >= (options.minConfidence || this.config.thresholds.minEmergingConfidence);
@@ -301,7 +309,7 @@ class RiskAggregationService {
     const grouped = new Map();
 
     signals.forEach((signal) => {
-      const key = String(signal.entity || 'Unknown entity').toLowerCase();
+      const key = String(signal.entity_id || signal.entity || 'Unknown entity').toLowerCase();
       if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key).push(signal);
     });
@@ -319,7 +327,7 @@ class RiskAggregationService {
 
       if ((currentWindowSignals.length >= threshold || spikeRatio >= 2.5) && currentRiskScore >= 50) {
         alerts.push({
-          entity: entityKey,
+          entity: entitySignals[0]?.entity || entityKey,
           alert_type: 'RISK_ACTIVITY_SPIKE',
           window: windowKey,
           signal_count: currentWindowSignals.length,
@@ -357,7 +365,7 @@ class RiskAggregationService {
       };
     }
 
-    const uniqueEntities = new Set(targetSignals.map((signal) => signal.entity).filter(Boolean));
+    const uniqueEntities = new Set(targetSignals.map((signal) => signal.entity_id || signal.entity).filter(Boolean));
     const avgRiskScore = targetSignals.reduce((total, signal) => total + Number(signal.risk_score || 0), 0) / targetSignals.length;
     const previousSignals = this.getPreviousWindowSignals(signals, windowKey);
     const previousAverage = previousSignals.length
@@ -374,6 +382,26 @@ class RiskAggregationService {
       signal_count: targetSignals.length,
       window: windowKey,
     };
+  }
+
+  groupSignalsByStory(signals = []) {
+    const grouped = new Map();
+
+    signals.forEach((signal) => {
+      const storyKey = String(signal.story_id || signal.storyKey || signal.entity_id || signal.entity || '__unclustered__').toLowerCase();
+      if (!grouped.has(storyKey)) {
+        grouped.set(storyKey, []);
+      }
+      grouped.get(storyKey).push(signal);
+    });
+
+    return [...grouped.entries()].map(([storyKey, group]) => ({
+      story_key: storyKey,
+      signal_count: group.length,
+      independent_sources: new Set(group.map((signal) => signal.source).filter(Boolean)).size,
+      risk_score: Math.max(...group.map((signal) => Number(signal.risk_score || 0))),
+      signals: group,
+    }));
   }
 
   reset() {

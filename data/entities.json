@@ -1,0 +1,205 @@
+{
+  "entities": [
+    {
+      "id": "entity-apple",
+      "canonical_name": "Apple Inc.",
+      "ticker": "AAPL",
+      "entity_type": "company",
+      "sector": "Technology",
+      "industry": "Consumer Electronics",
+      "country": "United States",
+      "aliases": [
+        "Apple",
+        "Apple shares",
+        "Cupertino tech giant"
+      ],
+      "metadata": {
+        "exchange": "NASDAQ"
+      },
+      "created_at": "2026-10-08T16:35:41.693Z",
+      "updated_at": "2026-10-08T16:35:41.693Z"
+    },
+    {
+      "id": "entity-microsoft",
+      "canonical_name": "Microsoft Corporation",
+      "ticker": "MSFT",
+      "entity_type": "company",
+      "sector": "Technology",
+      "industry": "Software",
+      "country": "United States",
+      "aliases": [
+        "Microsoft",
+        "MSFT shares",
+        "Redmond software giant"
+      ],
+      "metadata": {
+        "exchange": "NASDAQ"
+      },
+      "created_at": "2026-10-08T16:35:41.694Z",
+      "updated_at": "2026-10-08T16:35:41.694Z"
+    },
+    {
+      "id": "entity-nvidia",
+      "canonical_name": "NVIDIA Corporation",
+      "ticker": "NVDA",
+      "entity_type": "company",
+      "sector": "Technology",
+      "industry": "Semiconductors",
+      "country": "United States",
+      "aliases": [
+        "NVIDIA",
+        "Nvidia",
+        "NVDA shares"
+      ],
+      "metadata": {
+        "exchange": "NASDAQ"
+      },
+      "created_at": "2026-10-08T16:35:41.694Z",
+      "updated_at": "2026-10-08T16:35:41.694Z"
+    },
+    {
+      "id": "entity-tesla",
+      "canonical_name": "Tesla, Inc.",
+      "ticker": "TSLA",
+      "entity_type": "company",
+      "sector": "Consumer Discretionary",
+      "industry": "Automotive",
+      "country": "United States",
+      "aliases": [
+        "Tesla",
+        "TSLA shares"
+      ],
+      "metadata": {
+        "exchange": "NASDAQ"
+      },
+      "created_at": "2026-10-08T16:35:41.694Z",
+      "updated_at": "2026-10-08T16:35:41.694Z"
+    },
+    {
+      "id": "entity-amazon",
+      "canonical_name": "Amazon.com, Inc.",
+      "ticker": "AMZN",
+      "entity_type": "company",
+      "sector": "Consumer Discretionary",
+      "industry": "E-commerce",
+      "country": "United States",
+      "aliases": [
+        "Amazon",
+        "AMZN shares"
+      ],
+      "metadata": {
+        "exchange": "NASDAQ"
+      },
+      "created_at": "2026-10-08T16:35:41.694Z",
+      "updated_at": "2026-10-08T16:35:41.694Z"
+    },
+    {
+      "id": "entity-meta",
+      "canonical_name": "Meta Platforms, Inc.",
+      "ticker": "META",
+      "entity_type": "company",
+      "sector": "Technology",
+      "industry": "Social Media",
+      "country": "United States",
+      "aliases": [
+        "Meta",
+        "Facebook",
+        "Instagram parent",
+        "META shares"
+      ],
+      "metadata": {
+        "exchange": "NASDAQ"
+      },
+      "created_at": "2026-10-08T16:35:41.694Z",
+      "updated_at": "2026-10-08T16:35:41.694Z"
+    },
+    {
+      "id": "entity-alphabet",
+      "canonical_name": "Alphabet Inc.",
+      "ticker": "GOOGL",
+      "entity_type": "company",
+      "sector": "Technology",
+      "industry": "Internet Services",
+      "country": "United States",
+      "aliases": [
+        "Alphabet",
+        "Google",
+        "GOOG",
+        "GOOGL shares"
+      ],
+      "metadata": {
+        "exchange": "NASDAQ"
+      },
+      "created_at": "2026-10-08T16:35:41.694Z",
+      "updated_at": "2026-10-08T16:35:41.694Z"
+    },
+    {
+      "id": "entity-jpmorgan",
+      "canonical_name": "JPMorgan Chase & Co.",
+      "ticker": "JPM",
+      "entity_type": "company",
+      "sector": "Financials",
+      "industry": "Banking",
+      "country": "United States",
+      "aliases": [
+        "JPMorgan",
+        "JPMorgan Chase",
+        "JPM shares"
+      ],
+      "metadata": {
+        "exchange": "NYSE"
+      },
+      "created_at": "2026-10-08T16:35:41.694Z",
+      "updated_at": "2026-10-08T16:35:41.694Z"
+    },
+    {
+      "id": "entity-fed",
+      "canonical_name": "Federal Reserve",
+      "ticker": null,
+      "entity_type": "organization",
+      "sector": null,
+      "industry": "Central Banking",
+      "country": "United States",
+      "aliases": [
+        "Fed",
+        "US Federal Reserve",
+        "FOMC"
+      ],
+      "metadata": {},
+      "created_at": "2026-10-08T16:35:41.694Z",
+      "updated_at": "2026-10-08T16:35:41.694Z"
+    },
+    {
+      "id": "entity-sec",
+      "canonical_name": "U.S. Securities and Exchange Commission",
+      "ticker": null,
+      "entity_type": "government",
+      "sector": null,
+      "industry": "Financial Regulation",
+      "country": "United States",
+      "aliases": [
+        "SEC",
+        "Securities and Exchange Commission"
+      ],
+      "metadata": {},
+      "created_at": "2026-10-08T16:35:41.694Z",
+      "updated_at": "2026-10-08T16:35:41.694Z"
+    },
+    {
+      "id": "entity-us",
+      "canonical_name": "United States",
+      "ticker": null,
+      "entity_type": "country",
+      "sector": null,
+      "industry": null,
+      "country": "United States",
+      "aliases": [
+        "USA",
+        "U.S."
+      ],
+      "metadata": {},
+      "created_at": "2026-10-08T16:35:41.694Z",
+      "updated_at": "2026-10-08T16:35:41.694Z"
+    }
+  ]
+}

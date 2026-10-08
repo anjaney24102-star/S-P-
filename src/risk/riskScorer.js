@@ -1,4 +1,5 @@
 const { risk: riskConfig } = require('../config/riskConfig');
+const { buildRiskExplanation } = require('../domain/RiskExplanation');
 
 class RiskScorer {
   constructor(config = riskConfig) {
@@ -42,9 +43,19 @@ class RiskScorer {
     return Math.min(1, 0.5 + evidence.length * 0.1);
   }
 
+  resolveSourceCredibility(source, sourceProfile) {
+    if (sourceProfile && typeof sourceProfile.credibility_score === 'number') {
+      return Number(sourceProfile.credibility_score);
+    }
+
+    const key = String(source || sourceProfile?.source_name || '').trim().toLowerCase();
+    return Number(this.config.sourceReliability[key] ?? this.config.sourceReliability.default ?? 0.5);
+  }
+
   computeRisk({
     analysis,
     source,
+    sourceProfile,
     publishedAt,
     repeatedSignalCount = 0,
     independentSignalCount = 0,
@@ -55,17 +66,23 @@ class RiskScorer {
     const sentimentImpact = this.sentimentScoreToImpact(sentimentScore);
     const eventSeverity = this.getEventSeverity(analysis.event_types || []);
     const relevance = Number(analysis.financial_relevance || 0);
-    const sourceReliability = this.config.sourceReliability[source] || this.config.sourceReliability.default;
+    const sourceCredibility = this.resolveSourceCredibility(source, sourceProfile);
+    const resolvedSourceProfile = sourceProfile || {
+      source_name: String(source || 'unknown').trim().toLowerCase(),
+      source_type: 'unknown',
+      credibility_score: sourceCredibility,
+      verification_status: 'unverified',
+    };
     const hoursOld = publishedAt ? (Date.now() - new Date(publishedAt).getTime()) / 3600000 : 12;
     const recency = this.recencyDecay(hoursOld);
     const evidenceConfidence = this.evidenceStrength(analysis.evidence || []);
-    const duplicateBoost = repeatedSignalCount > 0 ? 0.15 * Math.min(repeatedSignalCount, 3) : 0;
+    const duplicateBoost = repeatedSignalCount > 0 ? 0.08 * Math.min(repeatedSignalCount, 3) : 0;
     const independentBoost = independentSignalCount > 0 ? 0.12 * Math.min(independentSignalCount, 3) : 0;
 
     const sentimentRisk = sentimentImpact * 100 * weights.sentiment;
     const severityRisk = eventSeverity * 100 * weights.event_severity;
     const relevanceRisk = relevance * 100 * weights.financial_relevance;
-    const sourceRisk = (1 - sourceReliability) * 100 * weights.source_reliability;
+    const sourceRisk = (1 - sourceCredibility) * 100 * weights.source_reliability;
     const recencyRisk = recency * 100 * weights.recency;
     const evidenceRisk = evidenceConfidence * 100 * weights.evidence_confidence;
     const repeatedRisk = (duplicateBoost + independentBoost) * 100 * weights.repeated_signals;
@@ -75,7 +92,7 @@ class RiskScorer {
     );
 
     const confidence = this.clamp(
-      0.4 + (relevance * 0.3) + (eventSeverity * 0.25) + (sourceReliability * 0.15) + (evidenceConfidence * 0.1),
+      0.2 + (relevance * 0.25) + (eventSeverity * 0.2) + (sourceCredibility * 0.25) + (evidenceConfidence * 0.1) + (independentBoost * 0.2) - (duplicateBoost * 0.1),
       0,
       1,
     );
@@ -99,7 +116,7 @@ class RiskScorer {
       {
         factor: 'source_reliability',
         contribution: Number((sourceRisk).toFixed(1)),
-        severity: sourceReliability < 0.6 ? 'MEDIUM' : 'LOW',
+        severity: sourceCredibility < 0.6 ? 'MEDIUM' : 'LOW',
       },
       {
         factor: 'recency',
@@ -108,23 +125,31 @@ class RiskScorer {
       },
     ];
 
-    const explanation = {
-      contributing_factors: riskFactors.map((factor) => factor.factor),
-      factor_weights: weights,
-      factor_scores: {
+    const explanation = buildRiskExplanation({
+      contributingFactors: riskFactors.map((factor) => factor.factor),
+      factorWeights: weights,
+      factorScores: {
         sentiment: Number(sentimentRisk.toFixed(2)),
         event_severity: Number(severityRisk.toFixed(2)),
         financial_relevance: Number(relevanceRisk.toFixed(2)),
         source_reliability: Number(sourceRisk.toFixed(2)),
+        source_credibility: Number(sourceRisk.toFixed(2)),
         recency: Number(recencyRisk.toFixed(2)),
         evidence_confidence: Number(evidenceRisk.toFixed(2)),
         repeated_signals: Number(repeatedRisk.toFixed(2)),
       },
       evidence: analysis.evidence || [],
-      final_calculation: `${sentimentRisk.toFixed(2)} + ${severityRisk.toFixed(2)} + ${relevanceRisk.toFixed(2)} + ${sourceRisk.toFixed(2)} + ${recencyRisk.toFixed(2)} + ${evidenceRisk.toFixed(2)} + ${repeatedRisk.toFixed(2)} = ${riskScore.toFixed(2)}`,
-      model_name: 'baseline-risk-scoring',
-      model_version: '1.0.0',
-    };
+      finalCalculation: `${sentimentRisk.toFixed(2)} + ${severityRisk.toFixed(2)} + ${relevanceRisk.toFixed(2)} + ${sourceRisk.toFixed(2)} + ${recencyRisk.toFixed(2)} + ${evidenceRisk.toFixed(2)} + ${repeatedRisk.toFixed(2)} = ${riskScore.toFixed(2)}`,
+      modelName: 'baseline-risk-scoring',
+      modelVersion: '1.0.0',
+      sourceCredibility: {
+        source_name: resolvedSourceProfile.source_name || String(source || 'unknown').trim().toLowerCase(),
+        source_type: resolvedSourceProfile.source_type || 'unknown',
+        credibility_score: Number(sourceCredibility.toFixed(4)),
+        verification_status: resolvedSourceProfile.verification_status || 'unverified',
+        contribution: Number(sourceRisk.toFixed(2)),
+      },
+    });
 
     return {
       entity: entityName,

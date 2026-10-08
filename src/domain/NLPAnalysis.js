@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const buildNLPAnalysis = ({
   eventId,
   entities = [],
+  resolved_entities = [],
   topics = [],
   sentimentScore = 0,
   sentimentLabel = 'neutral',
@@ -16,6 +17,7 @@ const buildNLPAnalysis = ({
   id: uuidv4(),
   event_id: eventId,
   entities,
+  resolved_entities,
   topics,
   sentiment_score: Number(sentimentScore || 0),
   sentiment_label: sentimentLabel,

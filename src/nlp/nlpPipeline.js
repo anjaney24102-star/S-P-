@@ -15,6 +15,7 @@ class FinancialNLPipeline extends BaseNLPComponent {
     sentimentAnalyzer = new SentimentAnalyzer(),
     eventClassifier = new FinancialEventClassifier(),
     relevanceScorer = new FinancialRelevanceScorer(),
+    entityResolutionService = null,
     modelName = 'baseline-rule-based',
     modelVersion = '1.0.0',
   } = {}) {
@@ -25,6 +26,7 @@ class FinancialNLPipeline extends BaseNLPComponent {
     this.sentimentAnalyzer = sentimentAnalyzer;
     this.eventClassifier = eventClassifier;
     this.relevanceScorer = relevanceScorer;
+    this.entityResolutionService = entityResolutionService;
     this.modelName = modelName;
     this.modelVersion = modelVersion;
   }
@@ -32,6 +34,9 @@ class FinancialNLPipeline extends BaseNLPComponent {
   process(event) {
     const preprocessed = this.preprocessor.process(event);
     const entities = this.entityExtractor.process(preprocessed);
+    const resolvedEntities = this.entityResolutionService
+      ? this.entityResolutionService.resolveEvent(event, entities)
+      : [];
     const topics = this.topicClassifier.process(preprocessed);
     const sentiment = this.sentimentAnalyzer.process(preprocessed);
     const eventTypes = this.eventClassifier.process(preprocessed);
@@ -53,6 +58,7 @@ class FinancialNLPipeline extends BaseNLPComponent {
     return buildNLPAnalysis({
       eventId: event.id,
       entities,
+      resolved_entities: resolvedEntities,
       topics: topics.map((item) => ({ ...item })),
       sentimentScore: sentiment.score,
       sentimentLabel: sentiment.label,

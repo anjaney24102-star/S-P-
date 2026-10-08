@@ -95,6 +95,105 @@ paths:
       responses:
         '200':
           description: Recent analyses list
+  /api/v1/entities:
+    get:
+      summary: List canonical financial entities
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+        - name: type
+          in: query
+          required: false
+          schema: { type: string, enum: [company, organization, government, person, country, financial_instrument] }
+      responses:
+        '200': { description: Entity catalog }
+  /api/v1/entities/{id}:
+    get:
+      summary: Get a canonical financial entity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Entity found }
+        '404': { description: Entity not found }
+  /api/v1/entities/{id}/events:
+    get:
+      summary: List events mentioning a canonical entity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Resolved entity events }
+        '404': { description: Entity not found }
+  /api/v1/entities/{id}/risk:
+    get:
+      summary: Get canonical entity risk summary and signals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: window
+          in: query
+          required: false
+          schema: { type: string, default: 24h }
+      responses:
+        '200': { description: Entity risk summary and signals }
+        '404': { description: Entity not found }
+  /api/v1/warnings:
+    get:
+      summary: List current early-warning signals
+      parameters:
+        - name: window
+          in: query
+          required: false
+          schema: { type: string, enum: [1h, 6h, 24h, 7d, 30d], default: 6h }
+        - name: severity
+          in: query
+          required: false
+          schema: { type: string, enum: [WATCH, ELEVATED, HIGH, CRITICAL] }
+        - name: entity_id
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200': { description: Early-warning signal list }
+  /api/v1/entities/{id}/warnings:
+    get:
+      summary: List early warnings for a canonical entity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: window
+          in: query
+          required: false
+          schema: { type: string, enum: [1h, 6h, 24h, 7d, 30d], default: 6h }
+      responses:
+        '200': { description: Entity early-warning signals }
+        '404': { description: Entity not found }
+  /api/v1/entities/{id}/baseline:
+    get:
+      summary: Calculate and retrieve an entity risk baseline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: window
+          in: query
+          required: false
+          schema: { type: string, enum: [1h, 6h, 24h, 7d, 30d], default: 6h }
+      responses:
+        '200': { description: Entity risk baseline and history adequacy }
+        '404': { description: Entity not found }
 components:
   schemas:
     FinancialEventInput:
