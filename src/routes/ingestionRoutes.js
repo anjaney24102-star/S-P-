@@ -7,7 +7,10 @@ const createIngestionRouter = (service) => {
 
   router.post('/events', controller.ingestOne);
   router.post('/events/batch', controller.ingestBatch);
+  router.get('/events', controller.listEvents);
   router.get('/events/recent', controller.getRecent);
+  router.post('/ingest/news', controller.ingestNews);
+  router.post('/ingest/social', controller.ingestSocial);
 
   return router;
 };

@@ -5,7 +5,14 @@ const normalizeText = (value = '') => {
     return '';
   }
 
-  return value.replace(/\s+/g, ' ').trim();
+  const normalized = value.normalize ? value.normalize('NFKC') : value;
+
+  return normalized
+    .replace(/\r\n?/g, ' ')
+    .replace(/\n/g, ' ')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 };
 
 const normalizeTimestamp = (value) => {

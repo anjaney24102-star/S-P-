@@ -16,6 +16,8 @@ This project implements the ingestion foundation for a financial AI risk platfor
 
 The NLP layer is intentionally rule-based and deterministic by default so it runs fully locally without paid APIs or external model downloads.
 
+News and social posts are accepted through `POST /api/v1/events` (or the batch endpoint), then analyzed with `POST /api/v1/events/{eventId}/analyze`. The analysis response and `GET /api/v1/analyses/recent` provide machine-readable `sentiment_score` (-1 to 1), `event_classification`, `impact_score` (1 to 10), and supporting `event_types`, entities, and evidence. The impact score is a deterministic severity estimate based on event type, sentiment magnitude, and financial relevance; it is not a market-price forecast. The local baseline uses keyword rules and should be calibrated against labeled examples before production decisions.
+
 Model behavior:
 - Entity extraction uses keyword dictionaries for companies, organizations, people, countries, sectors, and financial instruments.
 - Topic and event classification rely on deterministic financial keyword rules.
@@ -27,6 +29,18 @@ Limitations:
 - The baseline model is best for obvious financial language and keyword-heavy events.
 - It may miss nuanced phrasing, sarcasm, or cross-domain context.
 - Domain-specific entity recognition remains rule-driven and can be improved with a stronger model later.
+
+### Feature 3: Financial Risk Signal Prediction
+
+After Feature 2 analysis completes, generate explainable signals with `POST /api/v1/events/{id}/signal`, retrieve them with `GET /api/v1/events/{id}/signal`, and list/filter signals with `GET /api/v1/signals?entity=Tesla&event_classification=Geopolitical&min_impact_score=6&sentiment_label=negative`. Each distinct company identified by NLP receives a signal; events without a company match receive an event-level signal. Generation is idempotent per event and company. The modular sentiment, event-classification, and impact-scoring interfaces consume the persisted NLP analysis; impact weights, category severities, and source reliability are configurable in `src/risk/impactScorer.js`. Scores estimate potential event impact and do not predict stock prices.
+
+### Feature 4: Structured Risk Signal Output API
+
+The downstream API exposes a stable nested signal schema with ISO-8601 timestamps, numeric sentiment and confidence, and integer impact scores. List endpoints use `{ data, meta }`; errors use `{ error: { code, message } }`. Filters include company, source, event classification, sentiment, minimum impact, and `from`/`to` timestamps. Pagination uses `page` and `limit` (maximum 100).
+
+Endpoints: `GET /api/v1/signals`, `GET /api/v1/signals/:id`, `GET /api/v1/entities/:entity/signals`, and `GET /api/v1/signals/recent`.
+
+Run `node scripts/example-client.js` to fetch recent signals and print the five highest impact results. Add `--export` to write the API schema as JSON Lines to `signals.jsonl`. Set `RISK_API_URL` to override the default API base URL.
 
 ### Run locally
 

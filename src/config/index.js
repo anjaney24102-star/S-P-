@@ -3,7 +3,7 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const allowedSources = (process.env.ALLOWED_SOURCES || 'news,social,manual,major_news,financial_news,company_announcement,social_media')
+const allowedSources = (process.env.ALLOWED_SOURCES || 'news,social,manual,major_news,financial_news,company_announcement,social_media,twitter,x')
   .split(',')
   .map((source) => source.trim().toLowerCase())
   .filter(Boolean);

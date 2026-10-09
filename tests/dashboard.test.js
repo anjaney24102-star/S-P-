@@ -7,6 +7,18 @@ describe('Real-Time Financial Risk Dashboard & Alerting', () => {
     resetIngestionForTests();
   });
 
+  test('dashboard page and stress-test assets are served with the API', async () => {
+    const page = await request(app).get('/');
+    expect(page.status).toBe(200);
+    expect(page.text).toContain('Portfolio stress test');
+    expect((await request(app).get('/stress-testing.js')).status).toBe(200);
+    expect((await request(app).get('/stress-testing.css')).status).toBe(200);
+    const stressScript = await request(app).get('/stress-testing.js');
+    expect(stressScript.text).toContain('Event-to-portfolio contagion');
+    expect((await request(app).get('/contagion-graph.css')).status).toBe(200);
+    expect((await request(app).get('/scenario-analysis.css')).status).toBe(200);
+  });
+
   test('dashboard summary returns market overview and risky entities', async () => {
     const signals = [
       buildRiskSignal({

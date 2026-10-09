@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Financial AI Risk Engine
   version: 1.0.0
-  description: Feature 1 - Real-Time Data Ingestion Engine for news, social, and manual financial events.
+  description: Financial text ingestion, NLP analysis, risk-signal generation, and structured output APIs.
 servers:
   - url: http://localhost:3000
 paths:
@@ -95,6 +95,115 @@ paths:
       responses:
         '200':
           description: Recent analyses list
+  /api/v1/events/{id}/signal:
+    post:
+      summary: Generate a persisted Feature 3 risk signal from an existing NLP analysis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201': { description: Risk signal created }
+        '200': { description: Existing signal returned }
+        '404': { description: Event not found }
+        '409': { description: Successful NLP analysis required }
+    get:
+      summary: Get the persisted risk signal for an event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Risk signal }
+        '404': { description: Signal not found }
+  /api/v1/signals:
+    get:
+      summary: List standardized machine-readable risk signals
+      parameters:
+        - { name: company, in: query, schema: { type: string } }
+        - { name: source, in: query, schema: { type: string } }
+        - { name: event_classification, in: query, schema: { type: string, enum: [Geopolitical, Macroeconomic, 'Credit Event', 'Merger/Acquisition', 'Product Launch', Regulatory, Legal, Earnings, 'Supply Chain', Cybersecurity, Other] } }
+        - { name: sentiment, in: query, schema: { type: string, enum: [positive, neutral, negative] } }
+        - { name: min_impact_score, in: query, schema: { type: integer, minimum: 1, maximum: 10 } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Paginated standardized risk signals
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedSignals' }
+              example:
+                data:
+                  - signal_id: sig_example
+                    event_id: evt_example
+                    timestamp: '2026-10-08T12:30:00.000Z'
+                    source: news
+                    company: { name: Tesla, ticker: TSLA }
+                    sentiment: { score: -0.72, label: negative }
+                    event: { classification: Geopolitical, confidence: 0.91 }
+                    impact: { score: 8, confidence: 0.84 }
+                    overall_confidence: 0.87
+                    explanation: [Strong negative sentiment, High financial relevance, Geopolitical event directly affecting the company]
+                meta: { page: 1, limit: 20, total: 100 }
+        '400': { $ref: '#/components/responses/ApiError' }
+  /api/v1/signals/recent:
+    get:
+      summary: Retrieve recent standardized risk signals
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: company, in: query, schema: { type: string } }
+        - { name: source, in: query, schema: { type: string } }
+        - { name: event_classification, in: query, schema: { type: string } }
+        - { name: sentiment, in: query, schema: { type: string, enum: [positive, neutral, negative] } }
+        - { name: min_impact_score, in: query, schema: { type: integer, minimum: 1, maximum: 10 } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: Paginated recent signal list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedSignals' }
+        '400': { $ref: '#/components/responses/ApiError' }
+  /api/v1/signals/{id}:
+    get:
+      summary: Retrieve one standardized risk signal by ID
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Standardized risk signal
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SingleSignal' }
+        '404': { $ref: '#/components/responses/ApiError' }
+  /api/v1/entities/{entity}/signals:
+    get:
+      summary: Retrieve standardized signals for a company/entity
+      parameters:
+        - { name: entity, in: path, required: true, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: source, in: query, schema: { type: string } }
+        - { name: event_classification, in: query, schema: { type: string } }
+        - { name: sentiment, in: query, schema: { type: string, enum: [positive, neutral, negative] } }
+        - { name: min_impact_score, in: query, schema: { type: integer, minimum: 1, maximum: 10 } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: Paginated signals for the requested entity
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedSignals' }
+        '400': { $ref: '#/components/responses/ApiError' }
+        '404': { $ref: '#/components/responses/ApiError' }
   /api/v1/entities:
     get:
       summary: List canonical financial entities
@@ -195,7 +304,77 @@ paths:
         '200': { description: Entity risk baseline and history adequacy }
         '404': { description: Entity not found }
 components:
+  responses:
+    ApiError:
+      description: Structured API error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+          example: { error: { code: INVALID_PARAMETER, message: page must be an integer. } }
   schemas:
+    RiskSignal:
+      type: object
+      required: [signal_id, event_id, timestamp, source, company, sentiment, event, impact, overall_confidence, explanation]
+      properties:
+        signal_id: { type: string }
+        event_id: { type: string }
+        timestamp: { type: string, format: date-time }
+        source: { type: string }
+        company:
+          type: object
+          required: [name, ticker]
+          properties:
+            name: { type: string }
+            ticker: { type: string, nullable: true }
+        sentiment:
+          type: object
+          required: [score, label]
+          properties:
+            score: { type: number, minimum: -1, maximum: 1 }
+            label: { type: string, enum: [positive, neutral, negative] }
+        event:
+          type: object
+          required: [classification, confidence]
+          properties:
+            classification: { type: string, enum: [Geopolitical, Macroeconomic, 'Credit Event', 'Merger/Acquisition', 'Product Launch', Regulatory, Legal, Earnings, 'Supply Chain', Cybersecurity, Other] }
+            confidence: { type: number, minimum: 0, maximum: 1 }
+        impact:
+          type: object
+          required: [score, confidence]
+          properties:
+            score: { type: integer, minimum: 1, maximum: 10 }
+            confidence: { type: number, minimum: 0, maximum: 1 }
+        overall_confidence: { type: number, minimum: 0, maximum: 1 }
+        explanation: { type: array, items: { type: string } }
+    PaginationMeta:
+      type: object
+      required: [page, limit, total]
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+    PaginatedSignals:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/RiskSignal' } }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+    SingleSignal:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/RiskSignal' }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+    ApiError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
     FinancialEventInput:
       type: object
       required:
@@ -208,7 +387,7 @@ components:
       properties:
         source:
           type: string
-          enum: [news, social, manual]
+          enum: [news, social, twitter, x, manual]
         source_event_id:
           type: string
           nullable: true

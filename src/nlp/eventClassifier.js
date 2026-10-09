@@ -4,6 +4,9 @@ class FinancialEventClassifier extends BaseNLPComponent {
   constructor() {
     super();
     this.rules = [
+      { type: 'geopolitical_event', keywords: ['war', 'sanctions', 'invasion', 'conflict', 'tariff'] },
+      { type: 'macroeconomic_event', keywords: ['inflation', 'interest rates', 'rate cuts', 'federal reserve', 'central bank', 'recession', 'gdp'] },
+      { type: 'product_launch', keywords: ['product launch', 'launches new', 'unveils', 'new product'] },
       { type: 'earnings_decline', keywords: ['earnings miss', 'earnings decline', 'revenue miss', 'weak earnings'] },
       { type: 'earnings_growth', keywords: ['earnings beat', 'profit growth', 'strong earnings', 'revenue growth'] },
       { type: 'executive_change', keywords: ['ceo resigns', 'executive change', 'leadership transition', 'board change'] },

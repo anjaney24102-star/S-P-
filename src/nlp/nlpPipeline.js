@@ -41,6 +41,13 @@ class FinancialNLPipeline extends BaseNLPComponent {
     const sentiment = this.sentimentAnalyzer.process(preprocessed);
     const eventTypes = this.eventClassifier.process(preprocessed);
     const relevance = this.relevanceScorer.process(preprocessed);
+    const eventClassification = this.classifyEvent(eventTypes);
+    const severity = Math.max(...eventTypes.map((type) => ({
+      regulatory_action: 9, lawsuit: 9, fraud_allegation: 10, bankruptcy_risk: 10,
+      earnings_decline: 8, earnings_growth: 5, executive_change: 6, acquisition: 7,
+      cybersecurity_incident: 8, supply_chain_disruption: 7, general_financial_event: 5,
+    }[type] || 5)));
+    const impactScore = Math.min(10, Math.max(1, Math.round(severity * 0.65 + Math.abs(sentiment.score) * 2 + relevance * 1.5)));
     const evidence = preprocessed.sentences.filter((sentence) => {
       const lower = sentence.toLowerCase();
       return lower.includes('earnings')
@@ -64,10 +71,24 @@ class FinancialNLPipeline extends BaseNLPComponent {
       sentimentLabel: sentiment.label,
       financialRelevance: relevance,
       eventTypes,
+      eventClassification,
+      impactScore,
       evidence: evidence.length ? evidence : [preprocessed.combinedText.slice(0, 200)],
       modelName: this.modelName,
       modelVersion: this.modelVersion,
     });
+  }
+
+  classifyEvent(eventTypes = []) {
+    const categories = {
+      geopolitical_event: 'Geopolitical', macroeconomic_event: 'Macroeconomic', product_launch: 'Product Launch',
+      regulatory_action: 'Regulatory', lawsuit: 'Credit Event', fraud_allegation: 'Credit Event',
+      bankruptcy_risk: 'Credit Event', earnings_decline: 'Corporate Performance',
+      earnings_growth: 'Corporate Performance', executive_change: 'Corporate',
+      acquisition: 'Merger/Acquisition', cybersecurity_incident: 'Operational',
+      supply_chain_disruption: 'Geopolitical', general_financial_event: 'Other',
+    };
+    return categories[eventTypes[0]] || 'Other';
   }
 }
 

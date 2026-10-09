@@ -1,7 +1,9 @@
 const express = require('express');
+const path = require('path');
 const { createIngestionRouter } = require('./routes/ingestionRoutes');
 const { createAnalysisRouter } = require('./routes/analysisRoutes');
 const { createRiskRouter } = require('./routes/riskRoutes');
+const { createRiskSignalRouter } = require('./routes/riskSignalRoutes');
 const { createAggregationRouter } = require('./routes/aggregationRoutes');
 const { createDashboardRouter } = require('./routes/dashboardRoutes');
 const { createAlertRouter } = require('./routes/alertRoutes');
@@ -24,6 +26,8 @@ const { SourceAdapterRegistry } = require('./adapters/sourceRegistry');
 const { FinancialNLPipeline } = require('./nlp/nlpPipeline');
 const { AnalysisService } = require('./services/analysisService');
 const { RiskService } = require('./services/riskService');
+const { RiskSignalService } = require('./services/riskSignalService');
+const { SignalOutputService } = require('./services/signalOutputService');
 const { StoryClusteringService } = require('./services/storyClusteringService');
 const { RiskAggregationService } = require('./services/riskAggregationService');
 const { AlertService } = require('./services/alertService');
@@ -89,11 +93,18 @@ const riskService = new RiskService({
   earlyWarningService,
 });
 const riskAggregationService = new RiskAggregationService({ riskRepository, entityResolutionService });
+const riskSignalService = new RiskSignalService({ eventRepository: repository, analysisRepository, riskRepository });
+const signalOutputService = new SignalOutputService({ riskRepository, eventRepository: repository, entityRepository });
 const dashboardService = new DashboardService({ riskRepository, riskAggregationService, alertService });
 
 const app = express();
+const dashboardDirectory = path.join(__dirname, '..');
 
 app.use(express.json({ limit: '1mb' }));
+app.get('/', (req, res) => res.sendFile(path.join(dashboardDirectory, 'index.html')));
+['app.js', 'styles.css', 'stress-testing.js', 'stress-testing.css', 'contagion-graph.css', 'scenario-analysis.css'].forEach((asset) => {
+  app.get(`/${asset}`, (req, res) => res.sendFile(path.join(dashboardDirectory, asset)));
+});
 app.use('/api/v1', createIngestionRouter(service));
 app.use('/api/v1', createAnalysisRouter(analysisService));
 app.use('/api/v1', createSourceRouter(credibilityService));
@@ -101,6 +112,7 @@ app.use('/api/v1', createStoryRouter(storyClusteringService));
 app.use('/api/v1', createEntityRouter({ entityResolutionService, eventRepository: repository, riskRepository, riskAggregationService, earlyWarningService }));
 app.use('/api/v1', createEarlyWarningRouter(earlyWarningService));
 app.use('/api/v1', createRiskRouter(riskService));
+app.use('/api/v1', createRiskSignalRouter(riskSignalService, signalOutputService));
 app.use('/api/v1', createAggregationRouter(riskAggregationService));
 app.use('/api/v1', createDashboardRouter(dashboardService));
 app.use('/api/v1', createAlertRouter(alertService));
@@ -135,6 +147,15 @@ app.use((error, req, res, next) => {
 
   const statusCode = error.statusCode || 500;
 
+  if (req.originalUrl.startsWith('/api/v1/signals') || /\/api\/v1\/entities\/[^/]+\/signals/.test(req.originalUrl)) {
+    return res.status(statusCode).json({
+      error: {
+        code: statusCode < 500 ? (error.code || 'INVALID_PARAMETER') : 'INTERNAL_ERROR',
+        message: statusCode < 500 ? error.message : 'Unable to retrieve risk signals.',
+      },
+    });
+  }
+
   res.status(statusCode).json({
     success: false,
     error: {
@@ -162,6 +183,8 @@ module.exports = {
   resetIngestionForTests,
   analysisService,
   riskService,
+  riskSignalService,
+  signalOutputService,
   storyClusteringService,
   riskAggregationService,
   alertService,

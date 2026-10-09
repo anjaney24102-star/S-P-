@@ -78,6 +78,8 @@ class AnalysisService {
         sentiment_label: 'neutral',
         financial_relevance: 0,
         event_types: ['analysis_failed'],
+        event_classification: 'Other',
+        impact_score: 1,
         evidence: [],
         model_name: this.nlpPipeline.modelName || 'baseline-rule-based',
         model_version: this.nlpPipeline.modelVersion || '1.0.0',
